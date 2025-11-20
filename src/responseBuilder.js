@@ -40,17 +40,15 @@ export async function generateBoardResponse ({
 
   const conversationExcerpt = buildConversationExcerpt(conversationLog)
 
+  const systemPrompt = [
+    'Ты — фасилитатор персонального совета директоров.',
+    'Не выдумывай фактов, опирайся на данные о персонажах.',
+    'Будь конкретным, избегай общих фраз.',
+    'Важны разные углы зрения и actionable шаги.',
+    'Соблюдай формат без добавления лишних разделов.'
+  ].join(' ')
+
   const messages = [
-    {
-      role: 'system',
-      content: [
-        'Ты — фасилитатор персонального совета директоров.',
-        'Не выдумывай фактов, опирайся на данные о персонажах.',
-        'Будь конкретным, избегай общих фраз.',
-        'Важны разные углы зрения и actionable шаги.',
-        'Соблюдай формат без добавления лишних разделов.'
-      ].join(' ')
-    },
     {
       role: 'user',
       content: [
@@ -72,6 +70,7 @@ export async function generateBoardResponse ({
     model: RESPONSE_MODEL,
     max_tokens: 1500,
     temperature: 0.7,
+    system: systemPrompt,
     messages
   })
 
