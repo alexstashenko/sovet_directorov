@@ -15,6 +15,24 @@ export const bot = new Telegraf(config.telegramToken, {
   handlerTimeout: 90_000
 })
 
+const BROAD_PATTERNS = [
+  /заработ(ать)? много денег/i,
+  /что делать/i,
+  /что посоветуешь/i,
+  /дай совет/i,
+  /помоги/i,
+  /i need help/i,
+  /what should i do/i,
+  /i feel lost/i,
+  /help me/i
+]
+
+const DETAIL_KEYWORDS = [
+  'клиент', 'проект', 'курс', 'стартап', 'продаж', 'маркет',
+  'евро', 'доллар', 'руб', 'budget', 'revenue', 'users',
+  'launch', 'pricing', 'team', 'timeline'
+]
+
 function ensureUserProfile (session, from) {
   if (!session.userProfile) {
     session.userProfile = {
@@ -63,6 +81,49 @@ function buildSelectionKeyboard (personas, selectedIndexes) {
       )
     ]))
   )
+}
+
+function needsClarification (text) {
+  const normalized = text.trim().toLowerCase()
+  if (!normalized) return true
+
+  if (BROAD_PATTERNS.some(pattern => pattern.test(normalized))) {
+    return true
+  }
+
+  if (normalized.length < 80) {
+    const hasDetailKeyword = DETAIL_KEYWORDS.some(keyword => normalized.includes(keyword))
+    const hasNumbers = /\d/.test(normalized)
+    const hasPunctuation = /[,.;:!?]/.test(normalized)
+
+    if (!hasDetailKeyword && !hasNumbers && !hasPunctuation) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function buildClarificationPrompt (language) {
+  if (language === 'ru') {
+    return [
+      'Запрос пока слишком общий. Чтобы Совет дал конкретные шаги, уточни, пожалуйста:',
+      '• в какой сфере или проекте ты работаешь',
+      '• какой результат нужен (цифры, сроки, формат)',
+      '• какие ресурсы или ограничения есть (деньги, время, команда)',
+      '',
+      'Например: «Хочу выйти на 3000 € в месяц за счёт ИИ-коучинга, есть 10 часов в неделю и база из 200 подписчиков».'
+    ].join('\n')
+  }
+
+  return [
+    'Your request is very broad. To get actionable advice, please clarify:',
+    '• the context or project you are working on',
+    '• the target outcome (numbers, timeframe, format)',
+    '• resources or constraints (budget, time, team)',
+    '',
+    'Example: “I want to reach €3k/month from AI coaching, have 10 hours weekly and a list of 200 subscribers.”'
+  ].join('\n')
 }
 
 async function handleStart (ctx) {
@@ -198,6 +259,12 @@ async function handleSituationDescription (ctx, session, text) {
 async function handleActiveQuestion (ctx, session, text) {
   const questionLanguage = detectLanguage(text)
   session.language = questionLanguage
+
+  if (needsClarification(text)) {
+    const clarification = buildClarificationPrompt(questionLanguage)
+    await sendMessageAndLog(ctx, clarification)
+    return
+  }
 
   try {
     const answer = await generateBoardResponse({
