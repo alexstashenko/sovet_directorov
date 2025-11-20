@@ -55,18 +55,25 @@ async function sendMessageAndLog (ctx, text, extra) {
   return response
 }
 
+function ensureSentence (text) {
+  if (!text) return ''
+  const trimmed = text.trim()
+  if (!trimmed) return ''
+  return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`
+}
+
 function buildPersonaListMessage (personas, languageCode) {
   const intro = languageCode === 'ru'
     ? 'Вот пять экспертов, которые лучше всего подойдут к вашей ситуации. Выберите трёх с помощью кнопок:'
     : 'Here are five experts tailored to your situation. Please pick three using the buttons below:'
 
   const list = personas.map((persona, index) => {
-    const reasonLabel = languageCode === 'ru' ? 'Почему' : 'Why'
-    return [
-      `${index + 1}. ${persona.name}`,
-      persona.headline,
-      `${reasonLabel}: ${persona.reason}`
-    ].join('\n')
+    const reasonSentence = ensureSentence(persona.reason)
+    const headlineSentence = persona.headline?.trim() ?? ''
+    const details = [reasonSentence, headlineSentence].filter(Boolean).join(' ')
+    return details
+      ? `${index + 1}. ${persona.name} - ${details}`
+      : `${index + 1}. ${persona.name}`
   }).join('\n\n')
 
   return `${intro}\n\n${list}`
