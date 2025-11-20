@@ -48,12 +48,22 @@ export async function generatePersonaOptions ({ situationSummary, targetLanguage
   }
 
   try {
-    const parsed = JSON.parse(contentBlock.text)
+    let rawText = contentBlock.text.trim()
+
+    if (rawText.startsWith('```')) {
+      rawText = rawText
+        .replace(/^```(?:json)?/i, '')
+        .replace(/```$/, '')
+        .trim()
+    }
+
+    const parsed = JSON.parse(rawText)
     if (!Array.isArray(parsed) || parsed.length !== 5) {
       throw new Error('Ожидалось 5 персон в массиве')
     }
     return parsed
   } catch (error) {
+    console.error('Текст отклика персон:', contentBlock.text)
     throw new Error(`Ошибка парсинга персон: ${error.message}`)
   }
 }
