@@ -83,6 +83,31 @@ function buildSelectionKeyboard (personas, selectedIndexes) {
   )
 }
 
+async function answerQuestion (ctx, session, questionText, language) {
+  try {
+    const answer = await generateBoardResponse({
+      question: questionText,
+      targetLanguage: language,
+      personas: session.selectedPersonas,
+      situationDescription: session.situationDescription,
+      conversationLog: session.conversationLog
+    })
+
+    await sendMessageAndLog(ctx, answer)
+    session.messagePairs += 1
+
+    if (session.messagePairs >= DEMO_LIMIT) {
+      await finalizeDemo(ctx, session)
+    }
+  } catch (error) {
+    console.error(error)
+    const failMessage = language === 'ru'
+      ? 'Совету не удалось сформировать ответ. Попробуйте задать вопрос иначе.'
+      : 'The board could not generate a response. Please try rephrasing.'
+    await sendMessageAndLog(ctx, failMessage)
+  }
+}
+
 function needsClarification (text) {
   const normalized = text.trim().toLowerCase()
   if (!normalized) return true
@@ -178,9 +203,13 @@ bot.action(/select_\d+/, async (ctx) => {
     session.stage = 'active'
     session.selectedPersonas = session.selectedPersonas.map(i => session.personaCandidates[i])
     const readyMessage = session.language === 'ru'
-      ? 'Совет сформирован! Задай первый вопрос или опиши конкретную дилемму.'
-      : 'Your board is ready! Share the first question or dilemma.'
-    await sendMessageAndLog(ctx, `${readyMessage}`)
+      ? 'Совет сформирован! Скоро вы получите его мнение...'
+      : 'Your board is assembled! You will receive its perspective shortly...'
+    await sendMessageAndLog(ctx, readyMessage)
+
+    const initialLanguage = detectLanguage(session.situationDescription) || session.language
+    session.language = initialLanguage
+    await answerQuestion(ctx, session, session.situationDescription, initialLanguage)
   }
 })
 
@@ -266,28 +295,7 @@ async function handleActiveQuestion (ctx, session, text) {
     return
   }
 
-  try {
-    const answer = await generateBoardResponse({
-      question: text,
-      targetLanguage: questionLanguage,
-      personas: session.selectedPersonas,
-      situationDescription: session.situationDescription,
-      conversationLog: session.conversationLog
-    })
-
-    await sendMessageAndLog(ctx, answer)
-    session.messagePairs += 1
-
-    if (session.messagePairs >= DEMO_LIMIT) {
-      await finalizeDemo(ctx, session)
-    }
-  } catch (error) {
-    console.error(error)
-    const failMessage = questionLanguage === 'ru'
-      ? 'Совету не удалось сформировать ответ. Попробуйте задать вопрос иначе.'
-      : 'The board could not generate a response. Please try rephrasing.'
-    await sendMessageAndLog(ctx, failMessage)
-  }
+  await answerQuestion(ctx, session, text, questionLanguage)
 }
 
 async function finalizeDemo (ctx, session) {
