@@ -1,6 +1,7 @@
 import { anthropic } from './anthropicClient.js'
 import { config } from './config.js'
 import { getLanguageDisplayName } from './language.js'
+import { jsonrepair } from 'jsonrepair'
 
 const PERSONA_MODEL = 'claude-sonnet-4-5-20250929'
 
@@ -57,7 +58,8 @@ export async function generatePersonaOptions ({ situationSummary, targetLanguage
         .trim()
     }
 
-    const parsed = JSON.parse(rawText)
+    const repaired = jsonrepair(rawText)
+    const parsed = JSON.parse(repaired)
     if (!Array.isArray(parsed) || parsed.length !== 5) {
       throw new Error('Ожидалось 5 персон в массиве')
     }
