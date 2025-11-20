@@ -1,0 +1,28 @@
+{
+  "name": "personal-board-telegram-bot",
+  "version": "0.1.0",
+  "description": "Telegram-бот для персонального совета директоров с динамическим подбором экспертов и интеграцией Anthropic Claude.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "NODE_ENV=development node src/index.js",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.28.1",
+    "dotenv": "^16.4.7",
+    "express": "^4.19.2",
+    "franc-min": "^6.1.0",
+    "langs": "^2.0.0",
+    "telegraf": "^4.16.3"
+  },
+  "devDependencies": {
+    "eslint": "^9.13.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-n": "^17.10.3",
+    "eslint-plugin-promise": "^7.2.1"
+  }
+}
+
